@@ -14,8 +14,8 @@ def get_current_ip():
 def get_hostname():
     return platform.node()
 
-def update_cloudflare(hostname):
-    print("In update")
+def update_cloudflare(hostname, ipaddr):
+#    print("In update")
     params = {'name':CFZONE, 'per_page':1}
     cf = CloudFlare.CloudFlare()
     try:
@@ -25,11 +25,20 @@ def update_cloudflare(hostname):
         exit('/zones.get %d %s - api call failed' % (e, e))
     except Exception as e:
         exit('/zones - %s - api call failed' % (e))
+    
+#    zone_name = zones[0]['name']
+    zone_id = zones[0]['id']
 
-    for zone in zones:
-        zone_name = zone['name']
-        zone_id = zone['id']
-        print(zone_id, zone_name)
+    dns_record = [
+        {'name':hostname, 'type':'A', 'content':ipaddr} ]
+    try:
+        r = cf.zones.dns_records.put(zone_id, data=dns_record)
+    except CloudFlare.exceptions.CloudFlareAPIError as e:
+        exit('/zones.post %d %s - api call failed' % (e, e))
+    except Exception as e:
+        exit('/zones - %s - api call failed' % (e))
+
+    print(r)
     return
 
 def main():
@@ -55,7 +64,7 @@ def main():
         sys.exit(0)
     else:
         print("IP address mismatch, updating.")
-        update_cloudflare(host)
+        update_cloudflare(host, ip)
     sys.exit(0)
 if __name__ == '__main__':
     main()
